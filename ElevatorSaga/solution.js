@@ -8,10 +8,11 @@
 
         elevator.debug = (msg) => {
             console.log(
-                `|e:${elevator.id}|`,
-                elevator.status,
-                elevator.loadFactor(),
+                `|e:${elevator.id}|${elevator.status}|${elevator.currentFloor()}|`,
+                `${Math.round(elevator.loadFactor() * 100)}%`,
+                "q",
                 elevator.destinationQueue,
+                "dest",
                 elevator.getPressedFloors(),
                 msg
             );
@@ -27,10 +28,7 @@
         };
 
         elevator.goesTo = (floorNum) => {
-            return (
-                -1 !== elevator.destinationQueue.indexOf(floorNum) ||
-                -1 !== elevator.getPressedFloors().indexOf(floorNum)
-            );
+            return elevator.destinationQueue.includes(floorNum) || elevator.getPressedFloors().includes(floorNum);
         };
 
         elevator.getScore = (floor, direction) => {
@@ -40,8 +38,10 @@
 
             /* add a check to see if we can take everyone on that floor */
 
-            if (elevator.status != "stopped" && elevator.status != direction) {
-                score = score * -1.0;
+            const floorDirection = floor.floorNum() > elevator.currentFloor() ? "up" : "down";
+
+            if (elevator.status != "stopped" && elevator.status != floorDirection) {
+                score = (1 / score) * -1.0;
             }
 
             /*
@@ -80,7 +80,7 @@
                 elevator.status = elevator.directionTo(floorNum);
             }
 
-            if (-1 === elevator.destinationQueue.indexOf(floorNum)) {
+            if (!elevator.destinationQueue.includes(floorNum)) {
                 elevator.goToFloor(floorNum);
             }
 
@@ -239,7 +239,9 @@
 
         floor.debug(
             `(${direction}): ` +
-                self.elevators.map((e) => `|e:${e.id}|(${e.getScore(floor, direction)})`).join(", ") +
+                self.elevators
+                    .map((e) => `|e:${e.id}|floor:${e.currentFloor()}|score:${e.getScore(floor, direction)}|`)
+                    .join(", ") +
                 " -> selected: " +
                 selected.id
         );
