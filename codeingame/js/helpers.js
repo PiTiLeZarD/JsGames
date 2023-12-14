@@ -22,6 +22,7 @@ const inPath = (path, x, y) => path.reduce((acc, [px, py]) => acc || (px === x &
 /** Board */
 const getCell = (b, x, y) => b[y][x];
 const cloneBoard = (b) => [...b.map((r) => [...r])];
+const displayBoard = (b) => b.forEach(row => console.error(row.join('')))
 const inBoard = (x, y) => x >= 0 && x < W && y >= 0 && y < H;
 const subBoard = (b, x, y, w, h) => new Array(h).fill(null).map((_, sy) => new Array(w).fill(null).map((__, sx) => b[sy+y][sx+x]))
 const positionsOf = (b, cells) =>
@@ -115,6 +116,8 @@ const dist = (lat1, lon1, lat2, lon2) =>
     ) * 6371;
 
 /* graphs */
+const node = (x, y) => `${x}_${y}`
+const parseNode = (n) => n.split('_').map(e => +e)
 const dijkstra = (graph, origin, destination = null, nodes = null) => {
     if (nodes == null) {
         const startupNodes = Object.fromEntries(
@@ -150,3 +153,14 @@ const board2graph = (b, accross=true) => Object.fromEntries(
             .filter(([x, y]) => isEmpty(getCell(b, x, y)))
         ]))
 )
+
+/* direction */
+const direction = (fx, fy, tx, ty) => `${ty>fy?'S':ty<fy?'N':''}${tx>fx?'E':tx<fx?'W':''}`
+const move = (direction) => ({N:'UP',S:'DOWN',E:'RIGHT',W:'LEFT'}[direction] || null)
+const travelTo = (x, y, direction) => {
+    if (direction.includes('S')) y += 1;
+    if (direction.includes('N')) y -= 1;
+    if (direction.includes('E')) x += 1;
+    if (direction.includes('W')) x -= 1;
+    return [x, y];
+}
