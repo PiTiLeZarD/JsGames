@@ -23,12 +23,13 @@ const inPath = (path, x, y) => path.reduce((acc, [px, py]) => acc || (px === x &
 const getCell = (b, x, y) => b[y][x];
 const cloneBoard = (b) => [...b.map((r) => [...r])];
 const inBoard = (x, y) => x >= 0 && x < W && y >= 0 && y < H;
+const subBoard = (b, x, y, w, h) => new Array(h).fill(null).map((_, sy) => new Array(w).fill(null).map((__, sx) => b[sy+y][sx+x]))
 const positionsOf = (b, cells) =>
     b.reduce(
         (acc, row, y) => [...acc, ...row.reduce((racc, c, x) => (cells.includes(c) ? [...racc, [x, y]] : racc), [])],
         []
     );
-const surroundingPositions = (x, y, corners = false) =>
+const surroundingPositions = (x, y, corners = false, accross = false) =>
     [
         [x - 1, y],
         [x, y + 1],
@@ -42,7 +43,8 @@ const surroundingPositions = (x, y, corners = false) =>
                   [x + 1, y - 1],
               ]
             : []),
-    ].filter(([x, y]) => inBoard(x, y));
+    ].map(([x, y]) => inBoard(x, y) ? [x, y] : (accross ? [(x+ W) % W, (y + H) % H] : null))
+     .filter((e) => !!e);
 
 /** Strings */
 const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -111,3 +113,40 @@ const dist = (lat1, lon1, lat2, lon2) =>
         Math.pow((rad(lon2) - rad(lon1)) * Math.cos((rad(lon1) + rad(lon2)) / 2), 2) +
             Math.pow(rad(lat2) - rad(lat1), 2)
     ) * 6371;
+
+/* graphs */
+const dijkstra = (graph, origin, destination = null, nodes = null) => {
+    if (nodes == null) {
+        const startupNodes = Object.fromEntries(
+            Object.keys(graph).map(node => [node, {distance: Infinity, label: 'unvisited', path: null}])
+        )
+        startupNodes[origin].label = 'current';
+        startupNodes[origin].distance = 0;
+        startupNodes[origin].path = [];
+        return dijkstra(graph, origin, destination, startupNodes);
+    }
+    Object.keys(nodes).filter(node => nodes[node].label == 'current').forEach(currentNode => {
+        nodes[currentNode].label = 'visited';
+        graph[currentNode]
+            .filter(n => nodes[n].label == 'unvisited')
+            .map(n => {
+                nodes[n].distance = nodes[currentNode].distance + 1;
+                nodes[n].label = 'current';
+                nodes[n].path = [...nodes[currentNode].path, n]
+            });
+    })
+    if (destination && nodes[destination].distance < Infinity) return nodes;
+    if (Object.keys(nodes).filter(n => nodes[n].label == 'current').length) dijkstra(graph, origin, destination, nodes)
+    return nodes;
+}
+
+const board2graph = (b, accross=true) => Object.fromEntries(
+    b.map((row, y) => row.map((_, x) => [x, y]))
+        .flat()
+        .filter(([x, y]) => isEmpty(getCell(b, x, y)))
+        .map(([x, y]) => ([
+            `${x}_${y}`,
+            surroundingPositions(x, y, false, accross)
+            .filter(([x, y]) => isEmpty(getCell(b, x, y)))
+        ]))
+)
